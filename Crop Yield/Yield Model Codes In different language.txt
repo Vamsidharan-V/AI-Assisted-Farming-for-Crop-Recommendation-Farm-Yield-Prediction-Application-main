@@ -1,0 +1,194 @@
+Endpoint url : https://eu-de.ml.cloud.ibm.com/ml/v4/deployments/36b5f986-f5cb-46b8-a4d6-04a76d6dcbab/predictions?version=2021-08-17
+
+cURL
+
+# NOTE: you must set $API_KEY below using information retrieved from your IBM Cloud account.
+
+curl --insecure -X POST --header "Content-Type: application/x-www-form-urlencoded" --header "Accept: application/json" --data-urlencode "grant_type=urn:ibm:params:oauth:grant-type:apikey" --data-urlencode "apikey=$API_KEY" "https://iam.cloud.ibm.com/identity/token"
+
+# the above CURL request will return an auth token that you will use as $IAM_TOKEN in the scoring request below
+# TODO: manually define and pass values to be scored below
+curl -X POST --header "Content-Type: application/json" --header "Accept: application/json" --header "Authorization: Bearer $IAM_TOKEN" -d '{"input_data": [{"fields": [$ARRAY_OF_INPUT_FIELDS],"values": [$ARRAY_OF_VALUES_TO_BE_SCORED, $ANOTHER_ARRAY_OF_VALUES_TO_BE_SCORED]}]}' "https://eu-de.ml.cloud.ibm.com/ml/v4/deployments/36b5f986-f5cb-46b8-a4d6-04a76d6dcbab/predictions?version=2021-08-17?version=2021-08-17"
+
+
+Java 
+
+import java.io.*;
+import java.net.MalformedURLException;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+public class HttpClientTest {
+	public static void main(String[] args) throws IOException {
+
+		// NOTE: you must manually set API_KEY below using information retrieved from your IBM Cloud account.
+
+		String API_KEY = "<your API key>";
+
+		HttpURLConnection tokenConnection = null;
+		HttpURLConnection scoringConnection = null;
+		BufferedReader tokenBuffer = null;
+		BufferedReader scoringBuffer = null;
+		try {
+			// Getting IAM token
+			URL tokenUrl = new URL("https://iam.cloud.ibm.com/identity/token?grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=" + API_KEY);
+			tokenConnection = (HttpURLConnection) tokenUrl.openConnection();
+			tokenConnection.setDoInput(true);
+			tokenConnection.setDoOutput(true);
+			tokenConnection.setRequestMethod("POST");
+			tokenConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+			tokenConnection.setRequestProperty("Accept", "application/json");
+			tokenBuffer = new BufferedReader(new InputStreamReader(tokenConnection.getInputStream()));
+			StringBuffer jsonString = new StringBuffer();
+			String line;
+			while ((line = tokenBuffer.readLine()) != null) {
+				jsonString.append(line);
+			}
+			// Scoring request
+			URL scoringUrl = new URL("https://eu-de.ml.cloud.ibm.com/ml/v4/deployments/36b5f986-f5cb-46b8-a4d6-04a76d6dcbab/predictions?version=2021-08-17?version=2021-08-17");
+			String iam_token = "Bearer " + jsonString.toString().split(":")[1].split("\"")[1];
+			scoringConnection = (HttpURLConnection) scoringUrl.openConnection();
+			scoringConnection.setDoInput(true);
+			scoringConnection.setDoOutput(true);
+			scoringConnection.setRequestMethod("POST");
+			scoringConnection.setRequestProperty("Accept", "application/json");
+			scoringConnection.setRequestProperty("Authorization", iam_token);
+			scoringConnection.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+			OutputStreamWriter writer = new OutputStreamWriter(scoringConnection.getOutputStream(), "UTF-8");
+
+			// NOTE: manually define and pass the array(s) of values to be scored in the next line
+			String payload = "{\"input_data\": [{\"fields\": [array_of_input_fields], \"values\": [array_of_values_to_be_scored, another_array_of_values_to_be_scored]}]}";
+			writer.write(payload);
+			writer.close();
+
+			scoringBuffer = new BufferedReader(new InputStreamReader(scoringConnection.getInputStream()));
+			StringBuffer jsonStringScoring = new StringBuffer();
+			String lineScoring;
+			while ((lineScoring = scoringBuffer.readLine()) != null) {
+				jsonStringScoring.append(lineScoring);
+			}
+			System.out.println(jsonStringScoring);
+		} catch (IOException e) {
+			System.out.println("The URL is not valid.");
+			System.out.println(e.getMessage());
+		}
+		finally {
+			if (tokenConnection != null) {
+				tokenConnection.disconnect();
+			}
+			if (tokenBuffer != null) {
+				tokenBuffer.close();
+			}
+			if (scoringConnection != null) {
+				scoringConnection.disconnect();
+			}
+			if (scoringBuffer != null) {
+				scoringBuffer.close();
+			}
+		}
+	}
+}
+
+Javascript
+
+const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+
+// NOTE: you must manually enter your API_KEY below using information retrieved from your IBM Cloud
+const API_KEY = "<your API key>";
+
+function getToken(errorCallback, loadCallback) {
+	const req = new XMLHttpRequest();
+	req.addEventListener("load", loadCallback);
+	req.addEventListener("error", errorCallback);
+	req.open("POST", "https://iam.cloud.ibm.com/identity/token");
+	req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+	req.setRequestHeader("Accept", "application/json");
+	req.send("grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=" + API_KEY);
+}
+
+function apiPost(scoring_url, token, payload, loadCallback, errorCallback){
+	const oReq = new XMLHttpRequest();
+	oReq.addEventListener("load", loadCallback);
+	oReq.addEventListener("error", errorCallback);
+	oReq.open("POST", scoring_url);
+	oReq.setRequestHeader("Accept", "application/json");
+	oReq.setRequestHeader("Authorization", "Bearer " + token);
+	oReq.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+	oReq.send(payload);
+}
+
+getToken((err) => console.log(err), function () {
+	let tokenResponse;
+	try {
+		tokenResponse = JSON.parse(this.responseText);
+	} catch(ex) {
+		// TODO: handle parsing exception
+	}
+	// NOTE: manually define and pass the array(s) of values to be scored in the next line
+	const payload = '{"input_data": [{"fields": [array_of_input_fields], "values": [array_of_values_to_be_scored, another_array_of_values_to_be_scored]}]}';
+	const scoring_url = "https://eu-de.ml.cloud.ibm.com/ml/v4/deployments/36b5f986-f5cb-46b8-a4d6-04a76d6dcbab/predictions?version=2021-08-17?version=2021-08-17";
+	apiPost(scoring_url, tokenResponse.token, payload, function (resp) {
+		let parsedPostResponse;
+		try {
+			parsedPostResponse = JSON.parse(this.responseText);
+		} catch (ex) {
+			// TODO: handle parsing exception
+		}
+		console.log("Scoring response");
+		console.log(parsedPostResponse);
+	}, function (error) {
+		console.log(error);
+	});
+});
+
+Python
+
+import requests
+
+# NOTE: you must manually set API_KEY below using information retrieved from your IBM Cloud account.
+API_KEY = "<your API key>"
+token_response = requests.post('https://iam.cloud.ibm.com/identity/token', data={"apikey": API_KEY, "grant_type": 'urn:ibm:params:oauth:grant-type:apikey'})
+mltoken = token_response.json()["access_token"]
+
+header = {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + mltoken}
+
+# NOTE: manually define and pass the array(s) of values to be scored in the next line
+payload_scoring = {"input_data": [{"fields": [array_of_input_fields], "values": [array_of_values_to_be_scored, another_array_of_values_to_be_scored]}]}
+
+response_scoring = requests.post('https://eu-de.ml.cloud.ibm.com/ml/v4/deployments/36b5f986-f5cb-46b8-a4d6-04a76d6dcbab/predictions?version=2021-08-17?version=2021-08-17', json=payload_scoring, headers={'Authorization': 'Bearer ' + mltoken})
+print("Scoring response")
+print(response_scoring.json())
+
+Scala
+
+import scalaj.http.{Http, HttpOptions}
+import scala.util.{Success, Failure}
+import java.util.Base64
+import java.nio.charset.StandardCharsets
+import play.api.libs.json._
+
+// NOTE: you must manually set API_KEY below using information retrieved from your IBM Cloud account.
+
+val API_KEY = "<your api key>"
+
+// Get IAM service token
+val iam_url = "https://iam.cloud.ibm.com/identity/token"
+val iam_response = Http(iam_url).header("Content-Type", "application/x-www-form-urlencoded").header("Accept", "application/json").postForm(Seq("grant_type" -> "urn:ibm:params:oauth:grant-type:apikey", "apikey" -> API_KEY)).asString
+val iamtoken_json: JsValue = Json.parse(iam_response.body)
+
+val iamtoken = (iamtoken_json \ "access_token").asOpt[String] match {
+	case Some(x) => x
+	case None => ""
+}
+
+// TODO: manually define and pass list of values to be scored
+val payload_scoring = Json.stringify(Json.toJson(Map("input_data" -> List(Map("fields" -> Json.toJson(List(list_of_input_fields)), "values" -> Json.toJson(list_of_values_to_be_scored))))))
+
+val scoring_url = "https://eu-de.ml.cloud.ibm.com/ml/v4/deployments/36b5f986-f5cb-46b8-a4d6-04a76d6dcbab/predictions?version=2021-08-17?version=2021-08-17"
+
+val response_scoring = Http(scoring_url).postData(payload_scoring).header("Content-Type", "application/json").header("Authorization", "Bearer " + iamtoken).option(HttpOptions.method("POST")).option(HttpOptions.connTimeout(10000)).option(HttpOptions.readTimeout(50000)).asString
+println("scoring response")
+println(response_scoring)
